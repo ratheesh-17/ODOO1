@@ -47,6 +47,10 @@ def list_stops(trip_id: int, db: Session = Depends(get_db), current_user: User =
 @router.post("", response_model=StopOut, status_code=status.HTTP_201_CREATED)
 def add_stop(trip_id: int, payload: StopCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     _get_trip(trip_id, current_user.id, db)
+    # Fix 2: verify city exists before creating stop
+    from app.models.city import City
+    if not db.query(City).filter(City.id == payload.city_id).first():
+        raise HTTPException(status_code=404, detail="City not found")
     stop = TripStop(trip_id=trip_id, **payload.model_dump())
     db.add(stop)
     db.commit()
@@ -60,6 +64,11 @@ def update_stop(trip_id: int, stop_id: int, payload: StopUpdate, db: Session = D
     stop = db.query(TripStop).filter(TripStop.id == stop_id, TripStop.trip_id == trip_id).first()
     if not stop:
         raise HTTPException(status_code=404, detail="Stop not found")
+    # Fix 3: validate departure >= arrival after merging with existing values
+    new_arrival = payload.arrival_date or stop.arrival_date
+    new_departure = payload.departure_date or stop.departure_date
+    if new_departure < new_arrival:
+        raise HTTPException(status_code=400, detail="departure_date must be after arrival_date")
     for field, value in payload.model_dump(exclude_none=True).items():
         setattr(stop, field, value)
     db.commit()
@@ -97,8 +106,12 @@ def add_activity_to_stop(trip_id: int, stop_id: int, payload: StopActivityCreate
     stop = db.query(TripStop).filter(TripStop.id == stop_id, TripStop.trip_id == trip_id).first()
     if not stop:
         raise HTTPException(status_code=404, detail="Stop not found")
-    if not db.query(Activity).filter(Activity.id == payload.activity_id).first():
+    activity = db.query(Activity).filter(Activity.id == payload.activity_id).first()
+    if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
+    # Fix 4: ensure activity belongs to the stop's city
+    if activity.city_id != stop.city_id:
+        raise HTTPException(status_code=400, detail="Activity does not belong to this stop's city")
     sa = StopActivity(stop_id=stop_id, **payload.model_dump())
     db.add(sa)
     db.commit()

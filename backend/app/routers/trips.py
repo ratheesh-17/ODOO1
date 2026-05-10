@@ -44,6 +44,10 @@ def update_trip(trip_id: int, payload: TripUpdate, db: Session = Depends(get_db)
     trip = db.query(Trip).filter(Trip.id == trip_id, Trip.user_id == current_user.id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
+    new_start = payload.start_date or trip.start_date
+    new_end = payload.end_date or trip.end_date
+    if new_end < new_start:
+        raise HTTPException(status_code=400, detail="end_date must be after start_date")
     for field, value in payload.model_dump(exclude_none=True).items():
         setattr(trip, field, value)
     db.commit()
