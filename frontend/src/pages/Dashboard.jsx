@@ -17,7 +17,7 @@ const Dashboard = () => {
       try {
         const [tripsRes, citiesRes] = await Promise.all([
           API.get('/trips'),
-          API.get('/cities?featured=true&limit=6'),
+          API.get('/cities?featured=true'),
         ]);
         setTrips(tripsRes.data);
         setCities(citiesRes.data);

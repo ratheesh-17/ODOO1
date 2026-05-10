@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Plus, Edit, Share2, DollarSign, Package, StickyNote, List, GitBranch, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Plus, Edit, Share2, DollarSign, Package, StickyNote, List, GitBranch, CheckCircle, Clock, Trash2 } from 'lucide-react';
 import API from '../services/api';
 import Navbar from '../components/Navbar';
 
@@ -30,6 +30,16 @@ const TripDetail = () => {
       if (error.response?.status === 404) navigate('/trips');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteStop = async (stopId) => {
+    if (!window.confirm('Delete this stop and all its activities?')) return;
+    try {
+      await API.delete(`/trips/${tripId}/stops/${stopId}`);
+      setStops((prev) => prev.filter((s) => s.id !== stopId));
+    } catch {
+      // silently ignore
     }
   };
 
@@ -160,7 +170,7 @@ const TripDetail = () => {
                 /* LIST VIEW */
                 <div className="space-y-4">
                   {stops.map((stop, index) => (
-                    <StopCard key={stop.id} stop={stop} index={index} tripId={tripId} />
+                    <StopCard key={stop.id} stop={stop} index={index} tripId={tripId} onDelete={handleDeleteStop} />
                   ))}
                 </div>
               ) : (
@@ -211,6 +221,7 @@ const TripDetail = () => {
                             <div className="flex space-x-3 text-sm">
                               <Link to={`/trips/${tripId}/stops/${stop.id}/edit`} className="text-blue-600 hover:underline">Edit</Link>
                               <Link to={`/trips/${tripId}/stops/${stop.id}/activities`} className="text-green-600 hover:underline">Activities</Link>
+                              <button onClick={() => handleDeleteStop(stop.id)} className="text-red-400 hover:text-red-600 hover:underline">Delete</button>
                             </div>
                           </div>
                         </div>
@@ -291,7 +302,7 @@ const TripDetail = () => {
 };
 
 // Extracted stop card for list view
-function StopCard({ stop, index, tripId }) {
+function StopCard({ stop, index, tripId, onDelete }) {
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
       <div className="flex items-start justify-between">
@@ -308,9 +319,18 @@ function StopCard({ stop, index, tripId }) {
             {stop.notes && <p className="text-sm text-gray-600 mt-2">{stop.notes}</p>}
           </div>
         </div>
-        <div className="text-right text-sm text-gray-600">
-          <div>Accommodation: ${stop.accommodation_cost}</div>
-          <div>Transport: ${stop.transport_cost}</div>
+        <div className="flex items-start space-x-3">
+          <div className="text-right text-sm text-gray-600">
+            <div>Accommodation: ${stop.accommodation_cost}</div>
+            <div>Transport: ${stop.transport_cost}</div>
+          </div>
+          <button
+            onClick={() => onDelete(stop.id)}
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+            title="Delete stop"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
       {stop.stop_activities?.length > 0 && (

@@ -4,7 +4,7 @@ import { ArrowLeft, Plus, Trash2, RotateCcw } from 'lucide-react';
 import API from '../services/api';
 import Navbar from '../components/Navbar';
 
-const CATEGORIES = ['clothing', 'toiletries', 'electronics', 'documents', 'medicine', 'other'];
+const CATEGORIES = ['clothing', 'toiletries', 'electronics', 'documents', 'medicines', 'other'];
 
 const Packing = () => {
   const { tripId } = useParams();

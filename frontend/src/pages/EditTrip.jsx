@@ -102,6 +102,7 @@ const EditTrip = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <select className="input-field" value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                <option value="draft">Draft</option>
                 <option value="planned">Planned</option>
                 <option value="ongoing">Ongoing</option>
                 <option value="completed">Completed</option>

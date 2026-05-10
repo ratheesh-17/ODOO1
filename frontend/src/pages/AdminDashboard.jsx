@@ -5,7 +5,7 @@ import {
   ShieldCheck, ToggleLeft, ToggleRight, AlertTriangle
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
-import api from '../services/api';
+import API from '../services/api';
 
 const STATUS_COLORS = {
   draft: 'bg-gray-200 text-gray-700',
@@ -42,10 +42,10 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     Promise.all([
-      api.get('/admin/stats'),
-      api.get('/admin/top-cities'),
-      api.get('/admin/top-activities'),
-      api.get('/admin/users'),
+      API.get('/admin/stats'),
+      API.get('/admin/top-cities'),
+      API.get('/admin/top-activities'),
+      API.get('/admin/users'),
     ])
       .then(([s, c, a, u]) => {
         setStats(s.data);
@@ -66,7 +66,7 @@ export default function AdminDashboard() {
   const handleToggle = async (userId) => {
     setToggling(userId);
     try {
-      const res = await api.patch(`/admin/users/${userId}/toggle-active`);
+      const res = await API.patch(`/admin/users/${userId}/toggle-active`);
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, is_active: res.data.is_active } : u))
       );
