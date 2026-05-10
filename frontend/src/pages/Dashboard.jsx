@@ -8,7 +8,7 @@ import Navbar from '../components/Navbar';
 const Dashboard = () => {
   const [trips, setTrips] = useState([]);
   const [cities, setCities] = useState([]);
-  const [stats, setStats] = useState({});
+  const [stats, setStats] = useState({ totalTrips: 0, completedTrips: 0, upcomingTrips: 0, totalSpent: 0, overBudgetTrips: 0 });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
