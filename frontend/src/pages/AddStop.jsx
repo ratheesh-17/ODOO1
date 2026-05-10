@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, Search, MapPin, Calendar, DollarSign, FileText } from 'lucide-react';
 import API from '../services/api';
 import Navbar from '../components/Navbar';
 
@@ -11,30 +11,25 @@ const AddStop = () => {
   const [search, setSearch] = useState('');
   const [selectedCity, setSelectedCity] = useState(null);
   const [existingStops, setExistingStops] = useState([]);
-  const [formData, setFormData] = useState({
-    arrival_date: '',
-    departure_date: '',
-    accommodation_cost: '',
-    transport_cost: '',
-    notes: '',
-  });
+  const [formData, setFormData] = useState({ arrival_date: '', departure_date: '', accommodation_cost: '', transport_cost: '', notes: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    API.get(`/trips/${tripId}/stops`).then((res) => setExistingStops(res.data)).catch(() => {});
+    API.get(`/trips/${tripId}/stops`).then(r => setExistingStops(r.data)).catch(() => {});
   }, [tripId]);
 
   useEffect(() => {
     if (search.length < 1) { setCities([]); return; }
-    API.get(`/cities?search=${search}`).then((res) => setCities(res.data)).catch(() => {});
+    API.get(`/cities?search=${search}`).then(r => setCities(r.data)).catch(() => {});
   }, [search]);
+
+  const set = f => e => setFormData(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedCity) { setError('Please select a city'); return; }
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
       await API.post(`/trips/${tripId}/stops`, {
         city_id: selectedCity.id,
@@ -48,54 +43,53 @@ const AddStop = () => {
       navigate(`/trips/${tripId}`);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to add stop');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       <Navbar />
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center space-x-4 mb-6">
-          <button onClick={() => navigate(`/trips/${tripId}`)} className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100">
+      <div className="page-container max-w-2xl">
+        <div className="flex items-center gap-3 mb-8">
+          <button onClick={() => navigate(`/trips/${tripId}`)}
+            className="p-2 rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 transition-all text-gray-500">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">Add Stop</h1>
+          <div>
+            <h1 className="page-title">Add Stop</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Stop #{existingStops.length + 1}</p>
+          </div>
         </div>
-        <div className="card">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{error}</div>}
 
-            {/* City Search */}
+        <div className="card">
+          {error && <div className="alert-error mb-6">{error}</div>}
+          <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* City search */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
+              <label className="input-label"><span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-blue-500" /> City *</span></label>
               {selectedCity ? (
-                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <span className="font-medium text-blue-900">{selectedCity.name}, {selectedCity.country}</span>
-                  <button type="button" onClick={() => { setSelectedCity(null); setSearch(''); }} className="text-blue-600 text-sm hover:underline">Change</button>
+                <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div>
+                    <p className="font-semibold text-blue-900">{selectedCity.name}</p>
+                    <p className="text-xs text-blue-600">{selectedCity.country}</p>
+                  </div>
+                  <button type="button" onClick={() => { setSelectedCity(null); setSearch(''); }}
+                    className="text-sm text-blue-600 hover:underline font-medium">Change</button>
                 </div>
               ) : (
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search for a city..."
-                    className="input-field pl-9"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
+                  <input type="text" placeholder="Search for a city..." className="input-field pl-9"
+                    value={search} onChange={e => setSearch(e.target.value)} />
                   {cities.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {cities.map((city) => (
-                        <button
-                          key={city.id}
-                          type="button"
-                          className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm"
-                          onClick={() => { setSelectedCity(city); setCities([]); setSearch(''); }}
-                        >
-                          <span className="font-medium">{city.name}</span>
-                          <span className="text-gray-500 ml-2">{city.country}</span>
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      {cities.map(city => (
+                        <button key={city.id} type="button"
+                          className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0"
+                          onClick={() => { setSelectedCity(city); setCities([]); setSearch(''); }}>
+                          <span className="font-medium text-gray-900">{city.name}</span>
+                          <span className="text-gray-400 ml-2">{city.country}</span>
                         </button>
                       ))}
                     </div>
@@ -104,50 +98,46 @@ const AddStop = () => {
               )}
             </div>
 
+            {/* Dates */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Arrival Date *</label>
-                <input type="date" required className="input-field" value={formData.arrival_date}
-                  onChange={(e) => setFormData({ ...formData, arrival_date: e.target.value })} />
+                <label className="input-label"><span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-gray-400" /> Arrival *</span></label>
+                <input type="date" required className="input-field" value={formData.arrival_date} onChange={set('arrival_date')} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Departure Date *</label>
-                <input type="date" required className="input-field" value={formData.departure_date}
-                  onChange={(e) => setFormData({ ...formData, departure_date: e.target.value })} />
+                <label className="input-label"><span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-gray-400" /> Departure *</span></label>
+                <input type="date" required className="input-field" min={formData.arrival_date} value={formData.departure_date} onChange={set('departure_date')} />
               </div>
             </div>
 
+            {/* Costs */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Accommodation Cost ($)</label>
+                <label className="input-label"><span className="flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-gray-400" /> Accommodation ($)</span></label>
                 <input type="number" min="0" step="0.01" className="input-field" placeholder="0.00"
-                  value={formData.accommodation_cost}
-                  onChange={(e) => setFormData({ ...formData, accommodation_cost: e.target.value })} />
+                  value={formData.accommodation_cost} onChange={set('accommodation_cost')} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Transport Cost ($)</label>
+                <label className="input-label"><span className="flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-gray-400" /> Transport ($)</span></label>
                 <input type="number" min="0" step="0.01" className="input-field" placeholder="0.00"
-                  value={formData.transport_cost}
-                  onChange={(e) => setFormData({ ...formData, transport_cost: e.target.value })} />
+                  value={formData.transport_cost} onChange={set('transport_cost')} />
               </div>
             </div>
 
+            {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-              <textarea rows={3} className="input-field" placeholder="Any notes for this stop..."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
+              <label className="input-label"><span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gray-400" /> Notes</span></label>
+              <textarea rows={3} className="input-field resize-none" placeholder="Any notes for this stop..."
+                value={formData.notes} onChange={set('notes')} />
             </div>
 
-            <div className="flex space-x-4 pt-2">
+            <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => navigate(`/trips/${tripId}`)} className="btn-secondary flex-1">Cancel</button>
-              <button type="submit" disabled={loading} className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed">
-                {loading ? 'Adding...' : 'Add Stop'}
-              </button>
+              <button type="submit" disabled={loading} className="btn-primary flex-1">{loading ? 'Adding...' : 'Add Stop'}</button>
             </div>
           </form>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
