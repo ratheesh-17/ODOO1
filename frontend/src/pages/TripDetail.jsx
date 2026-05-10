@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Plus, Edit, Share2, DollarSign, Package, StickyNote, List, GitBranch, CheckCircle, Trash2, Users, Camera } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Plus, Edit, Share2, DollarSign, Package, StickyNote, List, GitBranch, CheckCircle, Trash2, Users, Camera, ArrowUp, ArrowDown } from 'lucide-react';
 import API from '../services/api';
 import Navbar from '../components/Navbar';
 
@@ -37,10 +37,23 @@ const TripDetail = () => {
     if (!window.confirm('Delete this stop and all its activities?')) return;
     try {
       await API.delete(`/trips/${tripId}/stops/${stopId}`);
-      setStops((prev) => prev.filter((s) => s.id !== stopId));
-    } catch {
-      // silently ignore
-    }
+      setStops(prev => prev.filter(s => s.id !== stopId));
+    } catch {}
+  };
+
+  const handleReorder = async (stopId, direction) => {
+    const idx = stops.findIndex(s => s.id === stopId);
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= stops.length) return;
+    const reordered = [...stops];
+    [reordered[idx], reordered[newIdx]] = [reordered[newIdx], reordered[idx]];
+    const updated = reordered.map((s, i) => ({ ...s, stop_order: i + 1 }));
+    setStops(updated);
+    try {
+      await API.put(`/trips/${tripId}/stops/reorder`, {
+        stop_orders: updated.map(s => ({ stop_id: s.id, stop_order: s.stop_order }))
+      });
+    } catch { fetchTripData(); }
   };
 
   const handleShare = async () => {
@@ -198,7 +211,9 @@ const TripDetail = () => {
                 /* LIST VIEW */
                 <div className="space-y-4">
                   {stops.map((stop, index) => (
-                    <StopCard key={stop.id} stop={stop} index={index} tripId={tripId} onDelete={handleDeleteStop} />
+                    <StopCard key={stop.id} stop={stop} index={index} tripId={tripId}
+                      onDelete={handleDeleteStop} onReorder={handleReorder}
+                      isFirst={index === 0} isLast={index === stops.length - 1} />
                   ))}
                 </div>
               ) : (
@@ -270,28 +285,31 @@ const TripDetail = () => {
                                 </div>
                               </div>
                             )}
-                            <div className="flex space-x-4 text-sm border-t border-gray-100 pt-4">
-                              <Link
-                                to={`/trips/${tripId}/stops/${stop.id}/edit`}
-                                className="text-blue-600 hover:text-blue-700 font-medium flex items-center space-x-1"
-                              >
-                                <Edit className="h-4 w-4" />
-                                <span>Edit</span>
-                              </Link>
-                              <Link
-                                to={`/trips/${tripId}/stops/${stop.id}/activities`}
-                                className="text-green-600 hover:text-green-700 font-medium flex items-center space-x-1"
-                              >
-                                <Plus className="h-4 w-4" />
-                                <span>Activities</span>
-                              </Link>
-                              <button
-                                onClick={() => handleDeleteStop(stop.id)}
-                                className="text-red-500 hover:text-red-700 font-medium flex items-center space-x-1"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span>Delete</span>
-                              </button>
+                            <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                              <div className="flex gap-1">
+                                <button onClick={() => handleReorder(stop.id, 'up')} disabled={index === 0}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30 transition-colors" title="Move up">
+                                  <ArrowUp className="h-4 w-4" />
+                                </button>
+                                <button onClick={() => handleReorder(stop.id, 'down')} disabled={index === stops.length - 1}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30 transition-colors" title="Move down">
+                                  <ArrowDown className="h-4 w-4" />
+                                </button>
+                              </div>
+                              <div className="flex gap-3 text-sm">
+                                <Link to={`/trips/${tripId}/stops/${stop.id}/edit`}
+                                  className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                                  <Edit className="h-4 w-4" /><span>Edit</span>
+                                </Link>
+                                <Link to={`/trips/${tripId}/stops/${stop.id}/activities`}
+                                  className="text-green-600 hover:text-green-700 font-medium flex items-center gap-1">
+                                  <Plus className="h-4 w-4" /><span>Activities</span>
+                                </Link>
+                                <button onClick={() => handleDeleteStop(stop.id)}
+                                  className="text-red-500 hover:text-red-700 font-medium flex items-center gap-1">
+                                  <Trash2 className="h-4 w-4" /><span>Delete</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -429,7 +447,7 @@ const TripDetail = () => {
 };
 
 // Extracted stop card for list view
-function StopCard({ stop, index, tripId, onDelete }) {
+function StopCard({ stop, index, tripId, onDelete, onReorder, isFirst, isLast }) {
   return (
     <div className="border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-all hover:border-blue-200 bg-white">
       <div className="flex items-start justify-between">
@@ -446,7 +464,18 @@ function StopCard({ stop, index, tripId, onDelete }) {
             {stop.notes && <p className="text-gray-600 text-sm leading-relaxed">{stop.notes}</p>}
           </div>
         </div>
-        <div className="flex items-start space-x-4">
+        <div className="flex items-start gap-2">
+          {/* Reorder buttons */}
+          <div className="flex flex-col gap-1">
+            <button onClick={() => onReorder(stop.id, 'up')} disabled={isFirst}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30 transition-colors" title="Move up">
+              <ArrowUp className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={() => onReorder(stop.id, 'down')} disabled={isLast}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30 transition-colors" title="Move down">
+              <ArrowDown className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <div className="text-right space-y-1">
             <div className="flex items-center space-x-1 text-sm">
               <span className="text-gray-500">🏨</span>
@@ -457,11 +486,8 @@ function StopCard({ stop, index, tripId, onDelete }) {
               <span className="font-medium text-gray-900">${stop.transport_cost}</span>
             </div>
           </div>
-          <button
-            onClick={() => onDelete(stop.id)}
-            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-            title="Delete stop"
-          >
+          <button onClick={() => onDelete(stop.id)}
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="Delete stop">
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
