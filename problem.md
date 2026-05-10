@@ -98,6 +98,7 @@ Key Functionality/Components:
 Activity filters (type, cost, duration), add/remove buttons, quick view
 of description and images.
 
+
 9. Trip Budget & Cost Breakdown Screen 
 Description: Summarized financial view showing estimated total cost
 and breakdowns.

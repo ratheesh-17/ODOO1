@@ -46,6 +46,8 @@ def list_activities(
     city_id: int,
     category: Optional[str] = Query(None),
     max_cost: Optional[float] = Query(None),
+    max_duration: Optional[float] = Query(None),
+    sort_by: Optional[str] = Query(None),  # cost_asc, cost_desc, duration_asc, name_asc
     db: Session = Depends(get_db),
 ):
     if not db.query(City).filter(City.id == city_id).first():
@@ -55,6 +57,12 @@ def list_activities(
         q = q.filter(Activity.category == category)
     if max_cost is not None:
         q = q.filter(Activity.estimated_cost <= max_cost)
+    if max_duration is not None:
+        q = q.filter(Activity.duration_hours <= max_duration)
+    if sort_by == "cost_asc":      q = q.order_by(Activity.estimated_cost.asc())
+    elif sort_by == "cost_desc":   q = q.order_by(Activity.estimated_cost.desc())
+    elif sort_by == "duration_asc": q = q.order_by(Activity.duration_hours.asc())
+    elif sort_by == "name_asc":    q = q.order_by(Activity.name.asc())
     return q.all()
 
 
