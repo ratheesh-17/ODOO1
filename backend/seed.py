@@ -7,7 +7,13 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.database.db import SessionLocal
+from app.models.user import User
 from app.models.city import City, Activity
+from app.utils.auth import hash_password
+
+ADMIN_EMAIL    = "admin123@gmail.com"
+ADMIN_PASSWORD = "admin123"
+ADMIN_NAME     = "Admin"
 
 CITIES = [
     {"name": "Paris", "country": "France", "region": "Europe", "description": "The City of Light, famous for art, fashion, and cuisine.", "image_url": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800", "avg_daily_cost": 150.0, "popularity_score": 98, "is_featured": True},
@@ -127,8 +133,22 @@ ACTIVITIES = {
 def seed():
     db = SessionLocal()
     try:
+        # --- Admin user ---
+        if not db.query(User).filter(User.email == ADMIN_EMAIL).first():
+            db.add(User(
+                name=ADMIN_NAME,
+                email=ADMIN_EMAIL,
+                password_hash=hash_password(ADMIN_PASSWORD),
+                is_admin=True,
+                is_active=True,
+            ))
+            db.commit()
+            print(f"Admin created: {ADMIN_EMAIL} / {ADMIN_PASSWORD}")
+        else:
+            print("Admin already exists. Skipping.")
+
         if db.query(City).count() > 0:
-            print("Database already seeded. Skipping.")
+            print("Cities already seeded. Skipping.")
             return
 
         print("Seeding cities and activities...")

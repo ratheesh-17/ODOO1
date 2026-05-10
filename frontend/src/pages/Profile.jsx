@@ -10,7 +10,7 @@ const LANGUAGES = ['en', 'es', 'fr', 'de', 'ja', 'zh', 'ar', 'pt', 'hi'];
 const Profile = () => {
   const { user, login, logout } = useAuth();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ name: '', language_preference: 'en' });
+  const [formData, setFormData] = useState({ name: '', language_preference: 'en', profile_photo: '' });
   const [savedCities, setSavedCities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -28,6 +28,11 @@ const Profile = () => {
         ]);
         const p = profileRes.data;
         setFormData({ name: p.name, language_preference: p.language_preference || 'en' });
+        setFormData({ 
+          name: p.name, 
+          language_preference: p.language_preference || 'en',
+          profile_photo: p.profile_photo || ''
+        });
         setSavedCities(savedRes.data);
       } catch {
         navigate('/dashboard');
@@ -97,14 +102,18 @@ const Profile = () => {
         {/* Profile form */}
         <div className="card">
           <div className="flex items-center space-x-4 mb-6">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+            {formData.profile_photo ? (
+              <img src={formData.profile_photo} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
               <User className="h-8 w-8 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{user?.name}</h2>
-              <p className="text-sm text-gray-500">{user?.email}</p>
-            </div>
+            )}
           </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">{user?.name}</h2>
+            <p className="text-sm text-gray-500">{user?.email}</p>
+          </div>
+        </div>
 
           <form onSubmit={handleSave} className="space-y-4">
             <div>
@@ -127,6 +136,17 @@ const Profile = () => {
                 value={user?.email || ''}
               />
               <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Profile Photo URL</label>
+              <input
+                type="url"
+                className="input-field"
+                placeholder="https://images.unsplash.com/photo..."
+                value={formData.profile_photo}
+                onChange={(e) => setFormData({ ...formData, profile_photo: e.target.value })}
+              />
             </div>
 
             <div>

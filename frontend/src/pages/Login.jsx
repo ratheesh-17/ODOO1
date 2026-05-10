@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plane, MapPin, DollarSign, Share2, CheckCircle, Eye, EyeOff, X, Mail } from 'lucide-react';
+import { Plane, MapPin, DollarSign, Share2, CheckCircle, Eye, EyeOff, X, Mail, ShieldCheck } from 'lucide-react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,15 +11,21 @@ const FEATURES = [
   { icon: Share2,      title: 'Share Your Trips',       desc: 'Share itineraries publicly or copy trips from others.' },
 ];
 
+const ADMIN_EMAIL    = 'admin123@gmail.com';
+const ADMIN_PASSWORD = 'admin123';
+
 const Login = () => {
-  const [formData, setFormData]     = useState({ email: '', password: '' });
+  const [formData, setFormData]         = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState('');
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [showForgot, setShowForgot] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotSent, setForgotSent] = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [fieldErrors, setFieldErrors]   = useState({});
+  const [showForgot, setShowForgot]     = useState(false);
+  const [forgotEmail, setForgotEmail]   = useState('');
+  const [forgotSent, setForgotSent]     = useState(false);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError]     = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -41,7 +47,7 @@ const Login = () => {
     try {
       const res = await API.post('/auth/login', formData);
       login(res.data.user, res.data.access_token);
-      navigate('/dashboard');
+      navigate(res.data.user.is_admin ? '/admin' : '/dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed. Please try again.');
     } finally {
@@ -49,10 +55,28 @@ const Login = () => {
     }
   };
 
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    setAdminLoading(true);
+    setAdminError('');
+    try {
+      const res = await API.post('/auth/login', { email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+      if (!res.data.user.is_admin) {
+        setAdminError('This account does not have admin privileges.');
+        return;
+      }
+      login(res.data.user, res.data.access_token);
+      navigate('/admin');
+    } catch (err) {
+      setAdminError(err.response?.data?.detail || 'Admin login failed. Make sure seed.py has been run.');
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
   const handleForgot = (e) => {
     e.preventDefault();
     if (!forgotEmail.trim() || !/\S+@\S+\.\S+/.test(forgotEmail)) return;
-    // In a real app this would call an API endpoint
     setForgotSent(true);
   };
 
@@ -124,7 +148,6 @@ const Login = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-            {/* Email */}
             <div>
               <label className="input-label">Email address</label>
               <input type="email" className={`input-field ${fieldErrors.email ? 'border-red-400 focus:ring-red-400' : ''}`}
@@ -132,7 +155,6 @@ const Login = () => {
               {fieldErrors.email && <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>}
             </div>
 
-            {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="input-label mb-0">Password</label>
@@ -153,8 +175,7 @@ const Login = () => {
               {fieldErrors.password && <p className="text-xs text-red-500 mt-1">{fieldErrors.password}</p>}
             </div>
 
-            <button type="submit" disabled={loading}
-              className="w-full btn-primary py-2.5 text-base">
+            <button type="submit" disabled={loading} className="w-full btn-primary py-2.5 text-base">
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -168,8 +189,88 @@ const Login = () => {
             Don't have an account?{' '}
             <Link to="/register" className="text-blue-600 font-semibold hover:underline">Create one</Link>
           </p>
+
+          {/* Admin access */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs text-center text-gray-400 mb-2">Admin access</p>
+            <button
+              type="button"
+              onClick={() => { setShowAdminModal(true); setAdminError(''); }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-indigo-200 text-indigo-600 text-sm font-medium hover:bg-indigo-50 transition-colors"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Go to Admin Dashboard
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Admin Login Modal */}
+      {showAdminModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 relative">
+            <button
+              onClick={() => { setShowAdminModal(false); setAdminError(''); }}
+              className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-indigo-100 rounded-xl">
+                <ShieldCheck className="h-5 w-5 text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Admin Login</h3>
+                <p className="text-xs text-gray-500">Sign in with admin credentials</p>
+              </div>
+            </div>
+
+            {adminError && (
+              <div className="alert-error mb-4 flex items-center gap-2">
+                <X className="h-4 w-4 shrink-0" />{adminError}
+              </div>
+            )}
+
+            <form onSubmit={handleAdminLogin} className="space-y-4">
+              <div>
+                <label className="input-label">Email</label>
+                <input
+                  type="email"
+                  className="input-field bg-gray-50 text-gray-500 cursor-not-allowed"
+                  value={ADMIN_EMAIL}
+                  readOnly
+                />
+              </div>
+              <div>
+                <label className="input-label">Password</label>
+                <input
+                  type="password"
+                  className="input-field bg-gray-50 text-gray-500 cursor-not-allowed"
+                  value={ADMIN_PASSWORD}
+                  readOnly
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={adminLoading}
+                className="w-full btn-primary py-2.5 disabled:opacity-50"
+              >
+                {adminLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Signing in...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <ShieldCheck className="h-4 w-4" /> Enter Admin Dashboard
+                  </span>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Forgot Password Modal */}
       {showForgot && (

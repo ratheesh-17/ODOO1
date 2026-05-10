@@ -38,6 +38,7 @@ def view_shared_trip(token: str, db: Session = Depends(get_db)):
     if not shared:
         raise HTTPException(status_code=404, detail="Shared trip not found or inactive")
     trip = shared.trip
+    total_days = (trip.end_date - trip.start_date).days + 1
     return {
         "id": trip.id,
         "name": trip.name,
@@ -46,16 +47,22 @@ def view_shared_trip(token: str, db: Session = Depends(get_db)):
         "start_date": trip.start_date,
         "end_date": trip.end_date,
         "status": trip.status,
+        "total_budget": trip.total_budget,
+        "total_days": total_days,
         "stops": [
             {
                 "city": stop.city.name,
                 "country": stop.city.country,
                 "arrival_date": stop.arrival_date,
                 "departure_date": stop.departure_date,
+                "accommodation_cost": stop.accommodation_cost,
+                "transport_cost": stop.transport_cost,
+                "notes": stop.notes,
                 "activities": [
                     {
                         "name": sa.activity.name,
                         "category": sa.activity.category,
+                        "duration_hours": sa.activity.duration_hours,
                         "cost": sa.custom_cost if sa.custom_cost is not None else sa.activity.estimated_cost,
                     }
                     for sa in stop.stop_activities
@@ -64,6 +71,17 @@ def view_shared_trip(token: str, db: Session = Depends(get_db)):
             for stop in sorted(trip.stops, key=lambda s: s.stop_order)
         ],
     }
+
+
+@router.patch("/trips/{trip_id}/share/toggle")
+def toggle_share_link(trip_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    trip = db.query(Trip).filter(Trip.id == trip_id, Trip.user_id == current_user.id).first()
+    if not trip or not trip.shared:
+        raise HTTPException(status_code=404, detail="Share link not found")
+    trip.shared.is_active = not trip.shared.is_active
+    trip.is_public = trip.shared.is_active
+    db.commit()
+    return {"is_active": trip.shared.is_active}
 
 
 @router.post("/shared/{token}/copy", status_code=status.HTTP_201_CREATED)

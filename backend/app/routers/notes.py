@@ -50,7 +50,7 @@ def update_note(trip_id: int, note_id: int, payload: NoteUpdate, db: Session = D
         from app.models.trip import TripStop
         if not db.query(TripStop).filter(TripStop.id == payload.stop_id, TripStop.trip_id == trip_id).first():
             raise HTTPException(status_code=400, detail="stop_id does not belong to this trip")
-    for field, value in payload.model_dump(exclude_none=True).items():
+    for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(note, field, value)
     db.commit()
     db.refresh(note)
