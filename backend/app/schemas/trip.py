@@ -30,6 +30,14 @@ class TripUpdate(BaseModel):
     status: Optional[TripStatus] = None
     is_public: Optional[bool] = None
 
+    @field_validator("end_date")
+    @classmethod
+    def end_after_start(cls, v, info):
+        if v is not None and "start_date" in info.data and info.data["start_date"] is not None:
+            if v < info.data["start_date"]:
+                raise ValueError("end_date must be after start_date")
+        return v
+
 
 class TripOut(BaseModel):
     id: int
@@ -73,6 +81,14 @@ class StopUpdate(BaseModel):
     accommodation_cost: Optional[float] = None
     transport_cost: Optional[float] = None
     notes: Optional[str] = None
+
+    @field_validator("departure_date")
+    @classmethod
+    def depart_after_arrive(cls, v, info):
+        if v is not None and "arrival_date" in info.data and info.data["arrival_date"] is not None:
+            if v < info.data["arrival_date"]:
+                raise ValueError("departure_date must be after arrival_date")
+        return v
 
 
 class StopActivityOut(BaseModel):
