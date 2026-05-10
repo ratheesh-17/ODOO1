@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database.db import Base, engine
 import app.models  # noqa: F401
 
-from app.routers import auth, users, cities, trips, stops, budget, packing, notes, share
+from app.routers import auth, users, cities, trips, stops, budget, packing, notes, share, admin
 
 Base.metadata.create_all(bind=engine)
 
@@ -26,6 +26,7 @@ app.include_router(budget.router)
 app.include_router(packing.router)
 app.include_router(notes.router)
 app.include_router(share.router)
+app.include_router(admin.router)
 
 
 @app.get("/")

@@ -18,6 +18,8 @@ import Notes from "./pages/Notes";
 import Profile from "./pages/Profile";
 import SharedTrip from "./pages/SharedTrip";
 
+import AdminDashboard from "./pages/AdminDashboard";
+
 function PrivateRoute({ children }) {
   const { user } = useAuth();
   return user ? children : <Navigate to="/login" />;
@@ -26,6 +28,13 @@ function PrivateRoute({ children }) {
 function PublicRoute({ children }) {
   const { user } = useAuth();
   return !user ? children : <Navigate to="/dashboard" />;
+}
+
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" />;
+  if (!user.is_admin) return <Navigate to="/dashboard" />;
+  return children;
 }
 
 function App() {
@@ -49,6 +58,7 @@ function App() {
         <Route path="/cities/:cityId" element={<PrivateRoute><CityDetail /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/shared/:token" element={<SharedTrip />} />
+        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
     </Router>

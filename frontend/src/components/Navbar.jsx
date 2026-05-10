@@ -1,5 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { Plane, LogOut, User } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Plane, LogOut, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
@@ -23,6 +23,12 @@ const Navbar = () => {
             <Link to="/dashboard" className="hover:text-blue-600 transition-colors">Dashboard</Link>
             <Link to="/trips" className="hover:text-blue-600 transition-colors">My Trips</Link>
             <Link to="/cities" className="hover:text-blue-600 transition-colors">Explore</Link>
+            {user?.is_admin && (
+              <Link to="/admin" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-semibold transition-colors">
+                <ShieldCheck className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
           </nav>
           <div className="flex items-center space-x-3">
             <Link to="/profile" className="flex items-center space-x-2 text-sm text-gray-600 hover:text-blue-600 transition-colors">
