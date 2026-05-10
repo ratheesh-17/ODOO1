@@ -138,7 +138,7 @@ Key Functionality/Components:
 Add/edit/delete notes per trip or per stop, timestamp display, notes list view
 sorted by date.
 
-14. Admin / Analytics Dashboard (Optional)
+14. Admin / Analytics Dashboard
 Description: Admin-only interface to track user trends, trip data, and
 platform usage.
 Purpose: Helps in monitoring app adoption, popular cities, and user
