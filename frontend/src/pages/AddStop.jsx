@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Search, MapPin, Calendar, DollarSign, FileText } from 'lucide-react';
 import API from '../services/api';
 import Navbar from '../components/Navbar';
@@ -7,9 +7,16 @@ import Navbar from '../components/Navbar';
 const AddStop = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const preCity = params.get('city_id') ? {
+    id: parseInt(params.get('city_id')),
+    name: params.get('city_name') || '',
+    country: params.get('city_country') || '',
+  } : null;
   const [cities, setCities] = useState([]);
   const [search, setSearch] = useState('');
-  const [selectedCity, setSelectedCity] = useState(null);
+  const [selectedCity, setSelectedCity] = useState(preCity);
   const [existingStops, setExistingStops] = useState([]);
   const [formData, setFormData] = useState({ arrival_date: '', departure_date: '', accommodation_cost: '', transport_cost: '', notes: '' });
   const [loading, setLoading] = useState(false);
