@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, DateTime, Boolean, Enum
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, DateTime, Boolean, Enum, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database.db import Base
@@ -71,6 +71,9 @@ class SharedTrip(Base):
 
 class SavedDestination(Base):
     __tablename__ = "saved_destinations"
+    __table_args__ = (
+        UniqueConstraint("user_id", "city_id", name="uq_saved_user_city"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

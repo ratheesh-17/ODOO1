@@ -1,10 +1,13 @@
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, Boolean, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from app.database.db import Base
 
 
 class City(Base):
     __tablename__ = "cities"
+    __table_args__ = (
+        UniqueConstraint("name", "country", name="uq_city_name_country"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, index=True)
@@ -35,3 +38,7 @@ class Activity(Base):
 
     city = relationship("City", back_populates="activities")
     stop_activities = relationship("StopActivity", back_populates="activity")
+
+
+# Composite index for fast activity search by category within a city
+Index("ix_activities_city_category", Activity.city_id, Activity.category)
