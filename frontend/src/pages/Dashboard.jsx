@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Plus, Calendar, DollarSign, Plane, TrendingUp, AlertTriangle } from 'lucide-react';
+import { MapPin, Plus, Calendar, DollarSign, Plane, TrendingUp, AlertTriangle, BarChart3, Globe, CheckCircle } from 'lucide-react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
@@ -8,7 +8,7 @@ import Navbar from '../components/Navbar';
 const Dashboard = () => {
   const [trips, setTrips] = useState([]);
   const [cities, setCities] = useState([]);
-  const [budgets, setBudgets] = useState([]);
+  const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -17,12 +17,17 @@ const Dashboard = () => {
       try {
         const [tripsRes, citiesRes] = await Promise.all([
           API.get('/trips'),
-          API.get('/cities?featured=true'),
+          API.get('/cities?featured=true&limit=6'),
         ]);
         setTrips(tripsRes.data);
         setCities(citiesRes.data);
 
-        // fetch budgets for recent trips (up to 3)
+        // Calculate stats
+        const totalTrips = tripsRes.data.length;
+        const completedTrips = tripsRes.data.filter(t => t.status === 'completed').length;
+        const upcomingTrips = tripsRes.data.filter(t => new Date(t.start_date) > new Date()).length;
+
+        // Fetch budgets for recent trips
         const recentTrips = tripsRes.data.slice(0, 3);
         const budgetResults = await Promise.allSettled(
           recentTrips.map((t) => API.get(`/trips/${t.id}/budget`))
@@ -31,7 +36,17 @@ const Dashboard = () => {
         budgetResults.forEach((r, i) => {
           if (r.status === 'fulfilled') budgetMap[recentTrips[i].id] = r.value.data;
         });
-        setBudgets(budgetMap);
+
+        setStats({
+          totalTrips,
+          completedTrips,
+          upcomingTrips,
+          totalSpent: Object.values(budgetMap).reduce((sum, b) => sum + (b?.total_cost || 0), 0),
+          overBudgetTrips: tripsRes.data.filter((t) => {
+            const b = budgetMap[t.id];
+            return b && t.total_budget > 0 && b.total_cost > t.total_budget;
+          }).length
+        });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -44,181 +59,280 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  const totalSpent = Object.values(budgets).reduce((sum, b) => sum + (b?.total_cost || 0), 0);
-  const overBudgetTrips = trips.filter((t) => {
-    const b = budgets[t.id];
-    return b && t.total_budget > 0 && b.total_cost > t.total_budget;
-  });
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome */}
+        {/* Welcome Section */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-1">Welcome back, {user?.name?.split(' ')[0]} 👋</h2>
-          <p className="text-gray-600">Discover destinations, create itineraries, and share your travel plans.</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                Welcome back, {user?.name?.split(' ')[0]}! 👋
+              </h1>
+              <p className="text-lg text-gray-600">
+                Ready to plan your next adventure? Let's make it unforgettable.
+              </p>
+            </div>
+            <div className="hidden md:block">
+              <div className="bg-white p-4 rounded-2xl shadow-lg border border-gray-100">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-blue-100 rounded-xl">
+                    <Plane className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Total Trips</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.totalTrips}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Trips</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalTrips}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <Globe className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Completed</p>
+                <p className="text-3xl font-bold text-green-600">{stats.completedTrips}</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-xl">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Upcoming</p>
+                <p className="text-3xl font-bold text-blue-600">{stats.upcomingTrips}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <Calendar className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Spent</p>
+                <p className="text-3xl font-bold text-purple-600">${stats.totalSpent.toFixed(0)}</p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-xl">
+                <DollarSign className="h-6 w-6 text-purple-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Budget Alert */}
+        {stats.overBudgetTrips > 0 && (
+          <div className="mb-8 bg-red-50 border border-red-200 rounded-2xl p-6">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-red-100 rounded-xl">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-red-900">Budget Alert</h3>
+                <p className="text-red-700">
+                  {stats.overBudgetTrips} trip{stats.overBudgetTrips > 1 ? 's' : ''} exceed{stats.overBudgetTrips > 1 ? '' : 's'} your budget limit.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Link to="/trips/new" className="card group">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                <Plus className="h-6 w-6 text-blue-600" />
+          <Link
+            to="/trips/new"
+            className="group bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-blue-200 transition-all duration-200"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform">
+                <Plus className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Plan New Trip</h3>
+                <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  Plan New Trip
+                </h3>
                 <p className="text-sm text-gray-600">Start your journey</p>
               </div>
             </div>
           </Link>
 
-          <Link to="/cities" className="card group">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
-                <MapPin className="h-6 w-6 text-green-600" />
+          <Link
+            to="/cities"
+            className="group bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-green-200 transition-all duration-200"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="p-4 bg-gradient-to-br from-green-500 to-green-600 rounded-xl group-hover:scale-110 transition-transform">
+                <MapPin className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Explore Cities</h3>
+                <h3 className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
+                  Explore Cities
+                </h3>
                 <p className="text-sm text-gray-600">Find your next destination</p>
               </div>
             </div>
           </Link>
 
-          <Link to="/trips" className="card group">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                <Calendar className="h-6 w-6 text-purple-600" />
+          <Link
+            to="/trips"
+            className="group bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-purple-200 transition-all duration-200"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl group-hover:scale-110 transition-transform">
+                <BarChart3 className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">My Trips</h3>
+                <h3 className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                  My Trips
+                </h3>
                 <p className="text-sm text-gray-600">Manage your plans</p>
               </div>
             </div>
           </Link>
         </div>
 
-        {/* Budget Highlights */}
-        {trips.length > 0 && (
-          <section className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Budget Highlights</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="card">
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <TrendingUp className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-600">Total Trips</span>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{trips.length}</p>
-                <p className="text-xs text-gray-500 mt-1">{trips.filter(t => t.status === 'planned').length} planned · {trips.filter(t => t.status === 'ongoing').length} ongoing</p>
-              </div>
-
-              <div className="card">
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <DollarSign className="h-5 w-5 text-green-600" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-600">Total Spent</span>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">${totalSpent.toFixed(0)}</p>
-                <p className="text-xs text-gray-500 mt-1">Across recent trips</p>
-              </div>
-
-              <div className={`card ${overBudgetTrips.length > 0 ? 'border-red-200 bg-red-50' : ''}`}>
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className={`p-2 rounded-lg ${overBudgetTrips.length > 0 ? 'bg-red-100' : 'bg-gray-100'}`}>
-                    <AlertTriangle className={`h-5 w-5 ${overBudgetTrips.length > 0 ? 'text-red-600' : 'text-gray-400'}`} />
-                  </div>
-                  <span className="text-sm font-medium text-gray-600">Over Budget</span>
-                </div>
-                <p className={`text-3xl font-bold ${overBudgetTrips.length > 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                  {overBudgetTrips.length}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {overBudgetTrips.length > 0 ? overBudgetTrips.map(t => t.name).join(', ') : 'All trips within budget'}
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
         {/* Recent Trips */}
         <section className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-900">Recent Trips</h3>
-            <Link to="/trips" className="text-blue-600 hover:text-blue-700 text-sm font-medium">View all</Link>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Recent Trips</h2>
+            <Link
+              to="/trips"
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center space-x-1"
+            >
+              <span>View all</span>
+              <TrendingUp className="h-4 w-4" />
+            </Link>
           </div>
+
           {trips.length === 0 ? (
-            <div className="card text-center py-12">
-              <Plane className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No trips yet</h3>
-              <p className="text-gray-600 mb-4">Start planning your first adventure</p>
-              <Link to="/trips/new" className="btn-primary inline-block">Plan Your First Trip</Link>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+              <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Plane className="h-12 w-12 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No trips yet</h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                Start planning your first adventure and discover amazing destinations around the world.
+              </p>
+              <Link to="/trips/new" className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors">
+                <Plus className="h-5 w-5 mr-2" />
+                Plan Your First Trip
+              </Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {trips.slice(0, 3).map((trip) => {
-                const b = budgets[trip.id];
-                const isOver = b && trip.total_budget > 0 && b.total_cost > trip.total_budget;
-                return (
-                  <Link key={trip.id} to={`/trips/${trip.id}`} className="card group">
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{trip.name}</h4>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
+              {trips.slice(0, 3).map((trip) => (
+                <Link
+                  key={trip.id}
+                  to={`/trips/${trip.id}`}
+                  className="group bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-blue-200 transition-all duration-200 overflow-hidden"
+                >
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors line-clamp-1">
+                          {trip.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                          {trip.description || 'No description'}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-1 text-xs rounded-full ml-2 shrink-0 ${
                         trip.status === 'completed' ? 'bg-green-100 text-green-800' :
                         trip.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
                         'bg-gray-100 text-gray-800'
-                      }`}>{trip.status}</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{trip.description}</p>
-                    <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-                      <span className="flex items-center space-x-1">
-                        <Calendar className="h-4 w-4" />
-                        <span>{new Date(trip.start_date).toLocaleDateString()}</span>
+                      }`}>
+                        {trip.status}
                       </span>
-                      <span>{trip.stop_count} stops</span>
                     </div>
-                    {b && (
-                      <div className={`flex items-center justify-between text-xs px-2 py-1 rounded ${isOver ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-                        <span>Spent: ${b.total_cost.toFixed(0)}</span>
-                        {trip.total_budget > 0 && <span>Limit: ${trip.total_budget}</span>}
-                        {isOver && <AlertTriangle className="h-3 w-3" />}
+
+                    <div className="space-y-3">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>
+                          {new Date(trip.start_date).toLocaleDateString()} - {new Date(trip.end_date).toLocaleDateString()}
+                        </span>
                       </div>
-                    )}
-                  </Link>
-                );
-              })}
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">{trip.stop_count} stops</span>
+                        {trip.total_budget > 0 && (
+                          <span className="font-medium text-green-600">${trip.total_budget}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           )}
         </section>
 
         {/* Popular Cities */}
         <section>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-900">Popular Destinations</h3>
-            <Link to="/cities" className="text-blue-600 hover:text-blue-700 text-sm font-medium">Explore more</Link>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Popular Destinations</h2>
+            <Link
+              to="/cities"
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center space-x-1"
+            >
+              <span>Explore more</span>
+              <Globe className="h-4 w-4" />
+            </Link>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {cities.map((city) => (
-              <Link key={city.id} to={`/cities/${city.id}`} className="card group">
-                <div className="flex items-center space-x-3 mb-3">
-                  <MapPin className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{city.name}</h4>
-                    <p className="text-sm text-gray-600">{city.country}</p>
+              <Link
+                key={city.id}
+                to={`/cities/${city.id}`}
+                className="group bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-green-200 transition-all duration-200 overflow-hidden"
+              >
+                <div className="p-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-3 bg-green-100 rounded-xl group-hover:bg-green-200 transition-colors">
+                      <MapPin className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
+                        {city.name}
+                      </h3>
+                      <p className="text-sm text-gray-600">{city.country}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Avg. ${city.avg_daily_cost}/day</span>
-                  <span className="text-yellow-600">★ {city.popularity_score}</span>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Avg. ${city.avg_daily_cost}/day</span>
+                    <div className="flex items-center space-x-1">
+                      <span className="text-yellow-600">★</span>
+                      <span className="font-medium">{city.popularity_score}</span>
+                    </div>
+                  </div>
                 </div>
               </Link>
             ))}
