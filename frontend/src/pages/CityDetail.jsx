@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, DollarSign } from 'lucide-react';
+import { ArrowLeft, Clock, DollarSign } from 'lucide-react';
 import API from '../services/api';
 import Navbar from '../components/Navbar';
 

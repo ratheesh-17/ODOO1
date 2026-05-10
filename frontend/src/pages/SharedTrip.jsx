@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Calendar, Plane, Copy, Twitter, Facebook, Link2 } from 'lucide-react';
+import { MapPin, Calendar, Plane, Copy, Twitter, Link2 } from 'lucide-react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 

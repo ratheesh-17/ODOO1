@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Plus, Edit, Trash2, Calendar, MapPin } from 'lucide-react';
 import API from '../services/api';
 import Navbar from '../components/Navbar';
@@ -7,7 +7,6 @@ import Navbar from '../components/Navbar';
 const TripsList = () => {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTrips();
@@ -25,7 +24,7 @@ const TripsList = () => {
   };
 
   const handleDelete = async (tripId) => {
-    if (!confirm('Are you sure you want to delete this trip?')) return;
+    if (!window.confirm('Are you sure you want to delete this trip?')) return;
 
     try {
       await API.delete(`/trips/${tripId}`);

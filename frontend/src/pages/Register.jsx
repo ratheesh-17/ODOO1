@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Plane } from 'lucide-react';
+import { Plane } from 'lucide-react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 

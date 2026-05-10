@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Plus, Edit, Share2, DollarSign, Package, StickyNote, List, GitBranch, CheckCircle, Clock, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Plus, Edit, Share2, DollarSign, Package, StickyNote, List, GitBranch, CheckCircle, Trash2 } from 'lucide-react';
 import API from '../services/api';
 import Navbar from '../components/Navbar';
 
@@ -14,7 +14,7 @@ const TripDetail = () => {
   const [shareMsg, setShareMsg] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => { fetchTripData(); }, [tripId]);
+  useEffect(() => { fetchTripData(); }, [tripId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchTripData = async () => {
     try {
