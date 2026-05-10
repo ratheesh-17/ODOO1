@@ -24,11 +24,13 @@ const CreateTrip = () => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) { setFieldErrors(p => ({ ...p, cover_photo: 'Please select an image file' })); return; }
+    if (file.size > 5 * 1024 * 1024) { setFieldErrors(p => ({ ...p, cover_photo: 'Image must be under 5MB' })); return; }
     const reader = new FileReader();
     reader.onload = (ev) => {
       setPhotoPreview(ev.target.result);
-      // store as data URL — in production this would upload to a server
-      setFormData(p => ({ ...p, cover_photo: ev.target.result }));
+      // Keep preview locally; send null to backend (no file server in this setup)
+      // In production, upload to S3/Cloudinary and store the returned URL
+      setFormData(p => ({ ...p, cover_photo: '' }));
     };
     reader.readAsDataURL(file);
   };
@@ -158,7 +160,7 @@ const CreateTrip = () => {
               </label>
 
               {photoPreview ? (
-                <div className="relative">
+                <div className="relative mb-3">
                   <img src={photoPreview} alt="Cover preview"
                     className="w-full h-40 object-cover rounded-xl border border-gray-200" />
                   <button type="button" onClick={clearPhoto}
@@ -167,15 +169,19 @@ const CreateTrip = () => {
                   </button>
                 </div>
               ) : (
-                <div
-                  onClick={() => fileRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all group">
-                  <Upload className="h-8 w-8 text-gray-300 group-hover:text-blue-400 mx-auto mb-2 transition-colors" />
-                  <p className="text-sm text-gray-500 group-hover:text-blue-600 font-medium">Click to upload a photo</p>
+                <div onClick={() => fileRef.current?.click()}
+                  className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all group mb-3">
+                  <Upload className="h-7 w-7 text-gray-300 group-hover:text-blue-400 mx-auto mb-2 transition-colors" />
+                  <p className="text-sm text-gray-500 group-hover:text-blue-600 font-medium">Click to preview a photo</p>
                   <p className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP up to 5MB</p>
                 </div>
               )}
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+
+              {/* URL input as the actual stored value */}
+              <input type="url" className="input-field" placeholder="Or paste an image URL (e.g. https://images.unsplash.com/...)"
+                value={formData.cover_photo} onChange={set('cover_photo')} />
+              <p className="text-xs text-gray-400 mt-1">The URL will be saved as the cover photo</p>
               {fieldErrors.cover_photo && <p className="text-xs text-red-500 mt-1">{fieldErrors.cover_photo}</p>}
             </div>
 

@@ -58,6 +58,8 @@ Key Functionality/Components:
 Trip name, start & end dates, trip description, cover photo upload (optional),
 save button.
 
+3.Create Trip Screen Description: Form to initiate a new trip by providing a name, travel dates, and a description. Purpose: Begins the process of creating a personalized travel plan. Key Functionality/Components: Trip name, start & end dates, trip description, cover photo upload (optional), save button
+
 4. My Trips (Trip List) Screen
 Description: List view of all trips created by the user with basic summary
 data. Purpose: Easily access and manage existing or upcoming trips.
